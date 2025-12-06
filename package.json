@@ -4,12 +4,23 @@
   "type": "module",
   "private": false,
   "scripts": {
+    "build": "rm -rf dist/ && bun build src/index.html --outdir=dist --minify",
     "check": "biome check",
-    "check:fix": "biome check --fix"
+    "check:fix": "biome check --fix",
+    "cluster": "NODE_ENV=production bun cluster.ts",
+    "dev": "bun --hot index.ts",
+    "start": "NODE_ENV=production bun index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "react": "^19",
+    "react-dom": "^19"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.3.8",
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@types/react": "^19",
+    "@types/react-dom": "^19"
   },
   "peerDependencies": {
     "typescript": "^5"
