@@ -4,13 +4,14 @@
   "type": "module",
   "private": false,
   "scripts": {
-    "build": "rm -rf dist/ && bun build src/index.html --outdir=dist --minify",
+    "build": "bun build.ts",
     "check": "biome check",
     "check:fix": "biome check --fix",
-    "cluster": "NODE_ENV=production bun cluster.ts",
-    "dev": "bun --hot index.ts",
-    "start": "NODE_ENV=production bun index.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "start:basic": "NODE_ENV=production USE_CACHE=false USE_GZIP=false bun cluster.ts",
+    "start:gzip": "NODE_ENV=production USE_CACHE=false USE_GZIP=true bun cluster.ts",
+    "start:cache": "NODE_ENV=production USE_CACHE=true USE_GZIP=false bun cluster.ts",
+    "start:full": "NODE_ENV=production USE_CACHE=true USE_GZIP=true bun cluster.ts"
   },
   "dependencies": {
     "react": "^19",

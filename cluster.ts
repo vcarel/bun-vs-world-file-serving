@@ -1,5 +1,4 @@
 import cluster from "node:cluster";
-import { cpus } from "node:os";
 
 if (process.env.NODE_ENV !== "production") {
   console.error("❌ Clustering is only supported in production mode.");
@@ -7,11 +6,19 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 if (cluster.isPrimary) {
-  // Railway doesn't expose container CPU limits reliably, so use env var or fallback to CPU count
-  const numWorkers = process.env.WEB_CONCURRENCY
-    ? Number.parseInt(process.env.WEB_CONCURRENCY, 10)
-    : cpus().length;
-  console.log(`🎯 Primary process ${process.pid} starting ${numWorkers} workers...`);
+  const numWorkers = 2;
+
+  const USE_CACHE = process.env.USE_CACHE === "true";
+  const USE_GZIP = process.env.USE_GZIP === "true";
+
+  console.log("========================================");
+  console.log("🎯 Bun Cluster Server");
+  console.log("========================================");
+  console.log(`Primary process: ${process.pid}`);
+  console.log(`Workers: ${numWorkers}`);
+  console.log(`Memory Cache: ${USE_CACHE ? "✅ Enabled" : "❌ Disabled"}`);
+  console.log(`Gzip: ${USE_GZIP ? "✅ Enabled" : "❌ Disabled"}`);
+  console.log("========================================\n");
 
   for (let i = 0; i < numWorkers; i++) {
     cluster.fork();
@@ -28,7 +35,6 @@ if (cluster.isPrimary) {
     console.log(`✅ Worker ${worker.process.pid} is online`);
   });
 
-  // Graceful shutdown
   const shutdown = () => {
     console.log("\n🛑 Shutting down primary process...");
     for (const id in cluster.workers) {
@@ -37,9 +43,20 @@ if (cluster.isPrimary) {
     process.exit(0);
   };
 
-  process.on("SIGINT", shutdown); // Ctrl+C locally
-  process.on("SIGTERM", shutdown); // Railway/Docker shutdown
+  process.on("SIGINT", shutdown);
+  process.on("SIGTERM", shutdown);
 } else {
-  // Worker process - import and run your server
-  await import("./index.ts");
+  // Import the appropriate server based on configuration
+  const USE_CACHE = process.env.USE_CACHE === "true";
+  const USE_GZIP = process.env.USE_GZIP === "true";
+
+  if (USE_CACHE && USE_GZIP) {
+    await import("./index-full.ts");
+  } else if (USE_CACHE) {
+    await import("./index-cache.ts");
+  } else if (USE_GZIP) {
+    await import("./index-gzip.ts");
+  } else {
+    await import("./index-basic.ts");
+  }
 }
