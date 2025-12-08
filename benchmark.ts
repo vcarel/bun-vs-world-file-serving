@@ -65,11 +65,12 @@ async function runBenchmark(
     await sleep(1000);
   }
 
-  // Run bombardier
+  // Run bombardier with Accept-Encoding header
   try {
-    const output = await Bun.$`bombardier -c ${CONNECTIONS} -d ${DURATION} ${benchmarkUrl}`
-      .env({ GOMAXPROCS })
-      .text();
+    const output =
+      await Bun.$`bombardier -c ${CONNECTIONS} -d ${DURATION} -H "Accept-Encoding: gzip" ${benchmarkUrl}`
+        .env({ GOMAXPROCS })
+        .text();
 
     console.log(output);
 
@@ -137,14 +138,21 @@ async function main() {
   // Bun Benchmarks
   console.log("=== BUN SERVERS ===");
 
-  // All use the same cluster.ts file with different env vars
+  // All use the same cluster.ts file with different MODE values
   await runBenchmark("Bun Precompressed Gzip", "bun cluster.ts", false, BENCHMARK_URL, {
-    USE_CACHE: "false",
-    USE_GZIP: "true",
+    MODE: "precompressed-gzip",
   });
-  await runBenchmark("Bun Precompressed Gzip + Cache", "bun cluster.ts", false, BENCHMARK_URL, {
-    USE_CACHE: "true",
-    USE_GZIP: "true",
+  await runBenchmark(
+    "Bun Precompressed Gzip Memory Cache",
+    "bun cluster.ts",
+    false,
+    BENCHMARK_URL,
+    {
+      MODE: "precompressed-gzip-memory-cache",
+    },
+  );
+  await runBenchmark("Bun On-The-Fly Gzip", "bun cluster.ts", false, BENCHMARK_URL, {
+    MODE: "on-the-fly-gzip",
   });
 
   // Nginx Benchmarks
@@ -152,12 +160,19 @@ async function main() {
 
   console.log("\n🐳 Building Nginx Docker images...");
   await Bun.$`docker build -f Dockerfile.nginx-precompressed-gzip -t nginx-precompressed-gzip .`.quiet();
+  await Bun.$`docker build -f Dockerfile.nginx-on-the-fly-gzip -t nginx-on-the-fly-gzip .`.quiet();
 
   const distPath = `${process.cwd()}/dist`;
 
   await runBenchmark(
     "Nginx Precompressed Gzip",
     `docker run -d --name perf-test --cpuset-cpus=0,1 -v ${distPath}:/var/www/html:ro -p ${PORT}:${PORT} nginx-precompressed-gzip`,
+    true,
+    BENCHMARK_URL,
+  );
+  await runBenchmark(
+    "Nginx On-The-Fly Gzip",
+    `docker run -d --name perf-test --cpuset-cpus=0,1 -v ${distPath}:/var/www/html:ro -p ${PORT}:${PORT} nginx-on-the-fly-gzip`,
     true,
     BENCHMARK_URL,
   );

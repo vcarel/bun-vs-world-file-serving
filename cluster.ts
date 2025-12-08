@@ -8,16 +8,14 @@ if (process.env.NODE_ENV !== "production") {
 if (cluster.isPrimary) {
   const numWorkers = 2;
 
-  const USE_CACHE = process.env.USE_CACHE === "true";
-  const USE_GZIP = process.env.USE_GZIP === "true";
+  const MODE = process.env.MODE || "precompressed-gzip";
 
   console.log("========================================");
   console.log("🎯 Bun Cluster Server");
   console.log("========================================");
   console.log(`Primary process: ${process.pid}`);
   console.log(`Workers: ${numWorkers}`);
-  console.log(`Memory Cache: ${USE_CACHE ? "✅ Enabled" : "❌ Disabled"}`);
-  console.log(`Gzip: ${USE_GZIP ? "✅ Enabled" : "❌ Disabled"}`);
+  console.log(`Mode: ${MODE}`);
   console.log("========================================\n");
 
   for (let i = 0; i < numWorkers; i++) {
@@ -46,15 +44,22 @@ if (cluster.isPrimary) {
   process.on("SIGINT", shutdown);
   process.on("SIGTERM", shutdown);
 } else {
-  // Import the appropriate server based on configuration
-  const USE_CACHE = process.env.USE_CACHE === "true";
-  const USE_GZIP = process.env.USE_GZIP === "true";
+  // Import the appropriate server based on MODE
+  const MODE = process.env.MODE || "precompressed-gzip";
 
-  if (USE_CACHE && USE_GZIP) {
-    await import("./precompressed-gzip-cache.ts");
-  } else if (USE_GZIP) {
-    await import("./precompressed-gzip.ts");
-  } else {
-    throw new Error("Invalid configuration: USE_GZIP must be true. USE_CACHE is optional.");
+  switch (MODE) {
+    case "precompressed-gzip-memory-cache":
+      await import("./precompressed-gzip-memory-cache.ts");
+      break;
+    case "precompressed-gzip":
+      await import("./precompressed-gzip.ts");
+      break;
+    case "on-the-fly-gzip":
+      await import("./on-the-fly-gzip.ts");
+      break;
+    default:
+      throw new Error(
+        `Invalid MODE: ${MODE}. Valid modes: precompressed-gzip-memory-cache, precompressed-gzip, on-the-fly-gzip`,
+      );
   }
 }

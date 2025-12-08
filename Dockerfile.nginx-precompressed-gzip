@@ -2,12 +2,12 @@ FROM nginx:alpine
 
 # Nginx with all optimizations: compression + file cache + browser cache
 RUN echo 'worker_processes 2; \
-\
-events { \
+    \
+    events { \
     worker_connections 1024; \
-} \
-\
-http { \
+    } \
+    \
+    http { \
     include /etc/nginx/mime.types; \
     default_type application/octet-stream; \
     \
@@ -24,32 +24,32 @@ http { \
     open_file_cache_errors on; \
     \
     server { \
-        listen 3000; \
-        server_name localhost; \
-        \
-        root /var/www/html; \
-        \
-        # Serve pre-compressed .gz files if they exist \
-        gzip_static on; \
-        gzip_vary on; \
-        \
-        # Fallback gzip for files without .gz \
-        gzip on; \
-        gzip_min_length 1024; \
-        gzip_comp_level 6; \
-        gzip_types text/plain text/css text/xml text/javascript application/javascript application/x-javascript application/xml+rss application/json; \
-        \
-        # Browser caching headers \
-        location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ { \
-            expires 1y; \
-            add_header Cache-Control "public, immutable"; \
-        } \
-        \
-        location / { \
-            try_files $uri $uri/ /index.html; \
-        } \
+    listen 3000; \
+    server_name localhost; \
+    \
+    root /var/www/html; \
+    \
+    # Serve pre-compressed .gz files if they exist \
+    gzip_static on; \
+    gzip_vary on; \
+    \
+    # Fallback gzip for files without .gz \
+    gzip on; \
+    gzip_min_length 1024; \
+    gzip_comp_level 6; \
+    gzip_types text/plain text/css text/xml text/javascript application/javascript application/x-javascript application/xml+rss application/json; \
+    \
+    # Browser caching headers \
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ { \
+    expires 1y; \
+    add_header Cache-Control "public, immutable"; \
     } \
-}' > /etc/nginx/nginx.conf
+    \
+    location / { \
+    try_files $uri $uri/ /index.html; \
+    } \
+    } \
+    }' > /etc/nginx/nginx.conf
 
 EXPOSE 3000
 
