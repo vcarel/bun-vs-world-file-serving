@@ -1,14 +1,14 @@
 # Bun vs Nginx Performance Benchmark
 
-A comprehensive performance comparison between **Bun** and **Nginx** static file servers, testing various configurations with and without caching and gzip compression.
+A comprehensive performance comparison between **Bun** and **Nginx** static file servers, testing optimal configurations with pre-compressed gzip files and memory caching.
 
 ## Purpose
 
 This benchmark compares the throughput and latency of different server configurations:
 
 - **Bun** vs **Nginx** static file serving
-- With and without **memory/file caching**
-- With and without **pre-compressed gzip files**
+- Optimal configurations with **pre-compressed gzip files**
+- With and without **memory caching**
 - Using **[Bombardier](https://github.com/codesenberg/bombardier)** as the HTTP benchmarking tool
 
 The goal is to measure maximum requests per second, average latency, and throughput under high concurrency.
@@ -55,7 +55,7 @@ bun benchmark.ts
 
 This will:
 1. Build Docker images for Nginx configurations
-2. Run benchmarks for 8 different server configurations
+2. Run benchmarks for 3 different server configurations
 3. Generate `benchmark-results.json` with detailed results
 4. Display a summary table sorted by requests/second
 
@@ -68,21 +68,16 @@ This will:
 
 Rank | Server                              | Reqs/sec    | Avg Latency | Throughput
 -----+-------------------------------------+-------------+-------------+-----------
-   1 | Bun Basic (No Cache, No Gzip)       |    34459.54 |      1.45ms | 12.58GB/s
-   2 | Bun + Gzip                          |    34208.29 |      1.46ms | 12.49GB/s
-   3 | Nginx + File Cache                  |    30497.62 |      1.64ms | 11.14GB/s
-   4 | Nginx + File Cache + Gzip           |    30404.59 |      1.64ms | 11.10GB/s
-   5 | Nginx Basic (No Cache, No Gzip)     |    28055.04 |      1.78ms | 10.24GB/s
-   6 | Nginx + Gzip                        |    26808.15 |      1.86ms | 9.79GB/s
-   7 | Bun + Memory Cache                  |    22643.16 |      2.21ms | 8.26GB/s
-   8 | Bun + Memory Cache + Gzip           |    22124.58 |      2.26ms | 8.08GB/s
+   1 | Bun Precompressed Gzip              |    34208.29 |      1.46ms | 12.49GB/s
+   2 | Nginx Precompressed Gzip            |    30404.59 |      1.64ms | 11.10GB/s
+   3 | Bun Precompressed Gzip + Cache      |    22124.58 |      2.26ms | 8.08GB/s
 ```
 
 ## Key Findings
 
-- **Bun outperforms Nginx** by ~10-20%
-- **Bun memory caching** is less effective than Bun.file optimizations
-- **File cache in Nginx** provides significant improvements over basic configuration
+- **Bun with precompressed gzip** outperforms Nginx by ~12%
+- **Pre-compressed gzip files** are highly efficient for both servers
+- **Memory caching in Bun** reduces performance compared to direct file serving (Bun.file optimizations are more effective)
 
 ## License
 

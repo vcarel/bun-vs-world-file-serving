@@ -138,19 +138,11 @@ async function main() {
   console.log("=== BUN SERVERS ===");
 
   // All use the same cluster.ts file with different env vars
-  await runBenchmark("Bun Basic (No Cache, No Gzip)", "bun cluster.ts", false, BENCHMARK_URL, {
-    USE_CACHE: "false",
-    USE_GZIP: "false",
-  });
-  await runBenchmark("Bun + Gzip", "bun cluster.ts", false, BENCHMARK_URL, {
+  await runBenchmark("Bun Precompressed Gzip", "bun cluster.ts", false, BENCHMARK_URL, {
     USE_CACHE: "false",
     USE_GZIP: "true",
   });
-  await runBenchmark("Bun + Memory Cache", "bun cluster.ts", false, BENCHMARK_URL, {
-    USE_CACHE: "true",
-    USE_GZIP: "false",
-  });
-  await runBenchmark("Bun + Memory Cache + Gzip", "bun cluster.ts", false, BENCHMARK_URL, {
+  await runBenchmark("Bun Precompressed Gzip + Cache", "bun cluster.ts", false, BENCHMARK_URL, {
     USE_CACHE: "true",
     USE_GZIP: "true",
   });
@@ -159,34 +151,13 @@ async function main() {
   console.log("\n=== NGINX SERVERS ===");
 
   console.log("\n🐳 Building Nginx Docker images...");
-  await Bun.$`docker build -f Dockerfile.nginx-basic -t nginx-basic .`.quiet();
-  await Bun.$`docker build -f Dockerfile.nginx-gzip -t nginx-gzip .`.quiet();
-  await Bun.$`docker build -f Dockerfile.nginx-cache -t nginx-cache .`.quiet();
-  await Bun.$`docker build -f Dockerfile.nginx-full -t nginx-full .`.quiet();
+  await Bun.$`docker build -f Dockerfile.nginx-precompressed-gzip -t nginx-precompressed-gzip .`.quiet();
 
   const distPath = `${process.cwd()}/dist`;
 
   await runBenchmark(
-    "Nginx Basic (No Cache, No Gzip)",
-    `docker run -d --name perf-test --cpuset-cpus=0,1 -v ${distPath}:/var/www/html:ro -p ${PORT}:${PORT} nginx-basic`,
-    true,
-    BENCHMARK_URL,
-  );
-  await runBenchmark(
-    "Nginx + Gzip",
-    `docker run -d --name perf-test --cpuset-cpus=0,1 -v ${distPath}:/var/www/html:ro -p ${PORT}:${PORT} nginx-gzip`,
-    true,
-    BENCHMARK_URL,
-  );
-  await runBenchmark(
-    "Nginx + File Cache",
-    `docker run -d --name perf-test --cpuset-cpus=0,1 -v ${distPath}:/var/www/html:ro -p ${PORT}:${PORT} nginx-cache`,
-    true,
-    BENCHMARK_URL,
-  );
-  await runBenchmark(
-    "Nginx + File Cache + Gzip",
-    `docker run -d --name perf-test --cpuset-cpus=0,1 -v ${distPath}:/var/www/html:ro -p ${PORT}:${PORT} nginx-full`,
+    "Nginx Precompressed Gzip",
+    `docker run -d --name perf-test --cpuset-cpus=0,1 -v ${distPath}:/var/www/html:ro -p ${PORT}:${PORT} nginx-precompressed-gzip`,
     true,
     BENCHMARK_URL,
   );

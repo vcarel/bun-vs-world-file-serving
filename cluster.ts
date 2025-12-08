@@ -51,12 +51,10 @@ if (cluster.isPrimary) {
   const USE_GZIP = process.env.USE_GZIP === "true";
 
   if (USE_CACHE && USE_GZIP) {
-    await import("./index-full.ts");
-  } else if (USE_CACHE) {
-    await import("./index-cache.ts");
+    await import("./precompressed-gzip-cache.ts");
   } else if (USE_GZIP) {
-    await import("./index-gzip.ts");
+    await import("./precompressed-gzip.ts");
   } else {
-    await import("./index-basic.ts");
+    throw new Error("Invalid configuration: USE_GZIP must be true. USE_CACHE is optional.");
   }
 }

@@ -8,10 +8,8 @@
     "check": "biome check",
     "check:fix": "biome check --fix",
     "typecheck": "tsc --noEmit",
-    "start:basic": "NODE_ENV=production USE_CACHE=false USE_GZIP=false bun cluster.ts",
-    "start:gzip": "NODE_ENV=production USE_CACHE=false USE_GZIP=true bun cluster.ts",
-    "start:cache": "NODE_ENV=production USE_CACHE=true USE_GZIP=false bun cluster.ts",
-    "start:full": "NODE_ENV=production USE_CACHE=true USE_GZIP=true bun cluster.ts"
+    "start:precompressed-gzip": "NODE_ENV=production USE_CACHE=false USE_GZIP=true bun cluster.ts",
+    "start:precompressed-gzip-cache": "NODE_ENV=production USE_CACHE=true USE_GZIP=true bun cluster.ts"
   },
   "dependencies": {
     "react": "^19",
