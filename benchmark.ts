@@ -115,6 +115,13 @@ async function main() {
   console.log(`  Workers: ${WORKERS}`);
   console.log(`  GOMAXPROCS: ${GOMAXPROCS}`);
   console.log("");
+  console.log("Benchmarking 8 configurations:");
+  console.log("  - 3 Bun variants");
+  console.log("  - 1 Node.js");
+  console.log("  - 1 Python");
+  console.log("  - 1 Ruby");
+  console.log("  - 2 Nginx");
+  console.log("");
 
   // Build dist files
   console.log("🔨 Building dist files...");
@@ -154,6 +161,39 @@ async function main() {
   await runBenchmark("Bun On-The-Fly Gzip", "bun cluster.ts", false, BENCHMARK_URL, {
     MODE: "on-the-fly-gzip",
   });
+
+  // Node.js Benchmarks
+  console.log("\n=== NODE.JS SERVERS ===");
+
+  await runBenchmark(
+    "Node.js Precompressed Gzip",
+    "node precompressed-gzip.node.js",
+    false,
+    BENCHMARK_URL,
+    { WORKERS },
+  );
+
+  // Python Benchmarks
+  console.log("\n=== PYTHON SERVERS ===");
+
+  await runBenchmark(
+    "Python Precompressed Gzip",
+    "python3 precompressed-gzip.py",
+    false,
+    BENCHMARK_URL,
+    { WORKERS },
+  );
+
+  // Ruby Benchmarks
+  console.log("\n=== RUBY SERVERS ===");
+
+  await runBenchmark(
+    "Ruby Precompressed Gzip",
+    "ruby precompressed-gzip.rb",
+    false,
+    BENCHMARK_URL,
+    { WORKERS },
+  );
 
   // Nginx Benchmarks
   console.log("\n=== NGINX SERVERS ===");

@@ -10,7 +10,10 @@
     "typecheck": "tsc --noEmit",
     "start:precompressed-gzip": "NODE_ENV=production MODE=precompressed-gzip bun cluster.ts",
     "start:precompressed-gzip-memory-cache": "NODE_ENV=production MODE=precompressed-gzip-memory-cache bun cluster.ts",
-    "start:on-the-fly-gzip": "NODE_ENV=production MODE=on-the-fly-gzip bun cluster.ts"
+    "start:on-the-fly-gzip": "NODE_ENV=production MODE=on-the-fly-gzip bun cluster.ts",
+    "start:node": "NODE_ENV=production WORKERS=2 node precompressed-gzip.node.js",
+    "start:python": "WORKERS=2 python3 precompressed-gzip.py",
+    "start:ruby": "WORKERS=2 ruby precompressed-gzip.rb"
   },
   "dependencies": {
     "react": "^19",
