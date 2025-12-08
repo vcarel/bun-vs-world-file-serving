@@ -1,10 +1,11 @@
 import { serve } from "bun";
+import { generateETag } from "./helpers";
 
 // In-memory file cache with pre-compressed gzip files - store actual content in RAM
 const fileCache = new Map<
   string,
   {
-    raw: { content: ArrayBuffer; type: string };
+    raw: { content: ArrayBuffer; type: string; etag: string };
     gzip?: ArrayBuffer;
   }
 >();
@@ -25,9 +26,14 @@ const server = serve({
         const file = Bun.file(`dist${path}`);
         // Load entire file into RAM
         const raw = await file.arrayBuffer();
+        const stat = await file.stat();
 
         cached = {
-          raw: { content: raw, type: file.type },
+          raw: {
+            content: raw,
+            type: file.type,
+            etag: generateETag(stat.mtime.getTime(), stat.size),
+          },
         };
 
         // Load pre-compressed .gz file into RAM if it exists
@@ -46,7 +52,9 @@ const server = serve({
           headers: {
             "Content-Encoding": "gzip",
             "Content-Type": cached.raw.type,
-            "Cache-Control": "public, max-age=31536000, immutable",
+            "Cache-Control": "public, max-age=0, must-revalidate",
+            ETag: cached.raw.etag,
+            Vary: "Accept-Encoding",
           },
         });
       }
@@ -54,7 +62,8 @@ const server = serve({
       return new Response(cached.raw.content, {
         headers: {
           "Content-Type": cached.raw.type,
-          "Cache-Control": "public, max-age=31536000, immutable",
+          "Cache-Control": "public, max-age=0, must-revalidate",
+          ETag: cached.raw.etag,
         },
       });
     },

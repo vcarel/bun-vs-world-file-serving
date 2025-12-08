@@ -1,8 +1,6 @@
 import { gzipSync } from "node:zlib";
 import { serve } from "bun";
-
-// Cache file types to avoid opening files twice
-const typeCache = new Map<string, string>();
+import { getMetadata } from "./helpers";
 
 // Bun server with on-the-fly gzip compression
 const server = serve({
@@ -12,17 +10,9 @@ const server = serve({
     "/*": async (req) => {
       const url = new URL(req.url);
       const path = url.pathname === "/" ? "/index.html" : url.pathname;
-
       const acceptEncoding = req.headers.get("accept-encoding") || "";
-
       const file = Bun.file(`dist${path}`);
-
-      // Get cached type or determine it once
-      let contentType = typeCache.get(path);
-      if (!contentType) {
-        contentType = file.type;
-        typeCache.set(path, contentType);
-      }
+      const metadata = await getMetadata(path, file);
 
       // Compress on-the-fly if client accepts gzip
       if (acceptEncoding.includes("gzip")) {
@@ -32,8 +22,10 @@ const server = serve({
         return new Response(compressed, {
           headers: {
             "Content-Encoding": "gzip",
-            "Content-Type": contentType,
-            "Cache-Control": "no-store, no-cache, must-revalidate",
+            "Content-Type": metadata.type,
+            "Cache-Control": "public, max-age=0, must-revalidate",
+            ETag: metadata.etag,
+            Vary: "Accept-Encoding",
           },
         });
       }
@@ -41,7 +33,9 @@ const server = serve({
       // Fallback to uncompressed file
       return new Response(file, {
         headers: {
-          "Cache-Control": "no-store, no-cache, must-revalidate",
+          "Content-Type": metadata.type,
+          "Cache-Control": "public, max-age=0, must-revalidate",
+          ETag: metadata.etag,
         },
       });
     },
