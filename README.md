@@ -1,4 +1,4 @@
-# Bun vs Nginx Performance Benchmark
+# Bun vs Nginx vs Node.js vs Python vs Ruby Performance Benchmark
 
 A comprehensive performance comparison between **Bun**, **Node.js**, **Python**, **Ruby**, and **Nginx** static file servers, testing pre-compressed gzip vs on-the-fly compression strategies.
 

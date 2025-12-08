@@ -1,5 +1,5 @@
 {
-  "name": "bun-perf",
+  "name": "bun-vs-world-file-serving",
   "module": "index.ts",
   "type": "module",
   "private": false,
