@@ -42,4 +42,4 @@ const server = serve({
   },
 });
 
-console.log(`🚀 Bun On-The-Fly Gzip Server running at ${server.url}`);
+console.log(`🚀 Bun on-the-fly gzip Server running at ${server.url}`);

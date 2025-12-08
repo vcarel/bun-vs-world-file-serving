@@ -113,14 +113,14 @@ bun run start:ruby
 
 Rank | Server                              | Reqs/sec    | Avg Latency | Throughput
 -----+-------------------------------------+-------------+-------------+-----------
-   1 | Bun Precompressed Gzip              |    72433.09 |     16.45ms | 8.08GB/s
-   2 | Nginx Precompressed Gzip            |    65906.14 |     28.74ms | 7.36GB/s
-   3 | Bun Precompressed Gzip Memory Cache |    55431.30 |      0.90ms | 6.18GB/s
-   4 | Ruby Precompressed Gzip             |    18859.19 |      2.75ms | 1.94GB/s
-   5 | Node.js Precompressed Gzip          |    15512.30 |      3.22ms | 1.73GB/s
-   6 | Python Precompressed Gzip           |    15329.50 |      3.26ms | 1.71GB/s
-   7 | Bun On-The-Fly Gzip                 |      374.99 |    132.46ms | 42.83MB/s
-   8 | Nginx On-The-Fly Gzip               |      227.14 |    217.75ms | 25.82MB/s
+   1 | Bun precompressed gzip              |    72433.09 |     16.45ms | 8.08GB/s
+   2 | Nginx precompressed gzip            |    65906.14 |     28.74ms | 7.36GB/s
+   3 | Bun precompressed gzip memory cache |    55431.30 |      0.90ms | 6.18GB/s
+   4 | Ruby precompressed gzip             |    18859.19 |      2.75ms | 1.94GB/s
+   5 | Node.js precompressed gzip          |    15512.30 |      3.22ms | 1.73GB/s
+   6 | Python precompressed gzip           |    15329.50 |      3.26ms | 1.71GB/s
+   7 | Bun on-the-fly gzip                 |      374.99 |    132.46ms | 42.83MB/s
+   8 | Nginx on-the-fly gzip               |      227.14 |    217.75ms | 25.82MB/s
 ```
 
 ## Key findings

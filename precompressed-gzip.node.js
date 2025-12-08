@@ -102,7 +102,7 @@ function startServer() {
 
   server.listen(3000, () => {
     console.log(
-      `🚀 Node.js Precompressed Gzip Server running at http://localhost:3000 (PID: ${process.pid})`,
+      `🚀 Node.js precompressed gzip Server running at http://localhost:3000 (PID: ${process.pid})`,
     );
   });
 }

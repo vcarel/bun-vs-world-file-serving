@@ -146,11 +146,11 @@ async function main() {
   console.log("=== BUN SERVERS ===");
 
   // All use the same cluster.ts file with different MODE values
-  await runBenchmark("Bun Precompressed Gzip", "bun cluster.ts", false, BENCHMARK_URL, {
+  await runBenchmark("Bun precompressed gzip", "bun cluster.ts", false, BENCHMARK_URL, {
     MODE: "precompressed-gzip",
   });
   await runBenchmark(
-    "Bun Precompressed Gzip Memory Cache",
+    "Bun precompressed gzip memory cache",
     "bun cluster.ts",
     false,
     BENCHMARK_URL,
@@ -158,7 +158,7 @@ async function main() {
       MODE: "precompressed-gzip-memory-cache",
     },
   );
-  await runBenchmark("Bun On-The-Fly Gzip", "bun cluster.ts", false, BENCHMARK_URL, {
+  await runBenchmark("Bun on-the-fly gzip", "bun cluster.ts", false, BENCHMARK_URL, {
     MODE: "on-the-fly-gzip",
   });
 
@@ -166,7 +166,7 @@ async function main() {
   console.log("\n=== NODE.JS SERVERS ===");
 
   await runBenchmark(
-    "Node.js Precompressed Gzip",
+    "Node.js precompressed gzip",
     "node precompressed-gzip.node.js",
     false,
     BENCHMARK_URL,
@@ -177,7 +177,7 @@ async function main() {
   console.log("\n=== PYTHON SERVERS ===");
 
   await runBenchmark(
-    "Python Precompressed Gzip",
+    "Python precompressed gzip",
     "python3 precompressed-gzip.py",
     false,
     BENCHMARK_URL,
@@ -188,7 +188,7 @@ async function main() {
   console.log("\n=== RUBY SERVERS ===");
 
   await runBenchmark(
-    "Ruby Precompressed Gzip",
+    "Ruby precompressed gzip",
     "ruby precompressed-gzip.rb",
     false,
     BENCHMARK_URL,
@@ -205,13 +205,13 @@ async function main() {
   const distPath = `${process.cwd()}/dist`;
 
   await runBenchmark(
-    "Nginx Precompressed Gzip",
+    "Nginx precompressed gzip",
     `docker run -d --name perf-test --cpuset-cpus=0,1 -v ${distPath}:/var/www/html:ro -p ${PORT}:${PORT} nginx-precompressed-gzip`,
     true,
     BENCHMARK_URL,
   );
   await runBenchmark(
-    "Nginx On-The-Fly Gzip",
+    "Nginx on-the-fly gzip",
     `docker run -d --name perf-test --cpuset-cpus=0,1 -v ${distPath}:/var/www/html:ro -p ${PORT}:${PORT} nginx-on-the-fly-gzip`,
     true,
     BENCHMARK_URL,

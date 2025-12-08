@@ -6,7 +6,7 @@ import sys
 # Simple wrapper to run Gunicorn with the wsgi.py file
 workers = int(os.environ.get('WORKERS', '2'))
 
-print(f"🚀 Python Precompressed Gzip Server running at http://localhost:3000 (Workers: {workers})")
+print(f"🚀 Python precompressed gzip Server running at http://localhost:3000 (Workers: {workers})")
 
 # Execute Gunicorn with gevent workers for async I/O
 os.execvp('gunicorn', [
