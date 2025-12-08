@@ -1,4 +1,4 @@
-# Bun vs Nginx vs Node.js vs Python vs Ruby Performance Benchmark
+# Bun vs Nginx vs Node.js vs Python vs Ruby performance benchmark
 
 A comprehensive performance comparison between **Bun**, **Node.js**, **Python**, **Ruby**, and **Nginx** static file servers, testing pre-compressed gzip vs on-the-fly compression strategies.
 
@@ -13,7 +13,7 @@ This benchmark compares the throughput and latency of different server configura
 
 The goal is to measure maximum requests per second, average latency, and throughput under high concurrency.
 
-## Hardware Requirements
+## Hardware requirements
 
 ⚠️ **This benchmark requires at least 8 CPU cores:**
 - **2 cores** for the tested server (pinned using `taskset`)
@@ -40,7 +40,7 @@ const tasksetCmd = ["taskset", "-c", "0-1", ...command.split(" ")]; // Adjust co
 - [Docker](https://www.docker.com/) (for Nginx containers)
 - [Bombardier](https://github.com/codesenberg/bombardier) HTTP benchmarking tool
 
-### Using mise (Recommended)
+### Using mise (recommended)
 
 Install runtime versions using [mise](https://mise.jdx.dev/):
 
@@ -67,7 +67,7 @@ pip install -r requirements.txt
 bundle install
 ```
 
-## Running the Benchmark
+## Running the benchmark
 
 Run all benchmarks (Bun, Node.js, Python, Ruby, and Nginx configurations):
 
@@ -81,7 +81,7 @@ This will:
 3. Generate `benchmark-results.json` with detailed results
 4. Display a summary table sorted by requests/second
 
-### Running Individual Servers
+### Running individual servers
 
 You can also run individual servers for testing:
 
@@ -104,7 +104,7 @@ bun run start:python
 bun run start:ruby
 ```
 
-## Benchmark Results
+## Benchmark results
 
 ```
 ========================================
@@ -123,7 +123,7 @@ Rank | Server                              | Reqs/sec    | Avg Latency | Through
    8 | Nginx On-The-Fly Gzip               |      227.14 |    217.75ms | 25.82MB/s
 ```
 
-## Key Findings
+## Key findings
 
 - **Bun outperforms Nginx by ~10%** (72.4k vs 65.9k req/s) for pre-compressed gzip files, achieving 8.08 GB/s throughput
 - **Bun.file optimizations are more effective than explicit memory caching** - direct file serving is 31% faster than in-memory caching (72.4k vs 55.4k req/s)
