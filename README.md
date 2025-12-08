@@ -113,19 +113,22 @@ bun run start:ruby
 
 Rank | Server                              | Reqs/sec    | Avg Latency | Throughput
 -----+-------------------------------------+-------------+-------------+-----------
-   1 | Bun Precompressed Gzip              |    70806.28 |     15.37ms | 7.90GB/s
-   2 | Nginx Precompressed Gzip            |    66129.07 |     26.17ms | 7.39GB/s
-   3 | Bun Precompressed Gzip Memory Cache |    56164.23 |      0.89ms | 6.27GB/s
-   4 | Bun On-The-Fly Gzip                 |      373.52 |    132.95ms | 42.57MB/s
-   5 | Nginx On-The-Fly Gzip               |      227.53 |    217.41ms | 25.89MB/s
+   1 | Bun Precompressed Gzip              |    72433.09 |     16.45ms | 8.08GB/s
+   2 | Nginx Precompressed Gzip            |    65906.14 |     28.74ms | 7.36GB/s
+   3 | Bun Precompressed Gzip Memory Cache |    55431.30 |      0.90ms | 6.18GB/s
+   4 | Ruby Precompressed Gzip             |    18859.19 |      2.75ms | 1.94GB/s
+   5 | Node.js Precompressed Gzip          |    15512.30 |      3.22ms | 1.73GB/s
+   6 | Python Precompressed Gzip           |    15329.50 |      3.26ms | 1.71GB/s
+   7 | Bun On-The-Fly Gzip                 |      374.99 |    132.46ms | 42.83MB/s
+   8 | Nginx On-The-Fly Gzip               |      227.14 |    217.75ms | 25.82MB/s
 ```
 
 ## Key Findings
 
-- **Bun on precompressed gzip** outperforms Nginx by ~7%
-- **On-the-fly gzip compression** creates a severe CPU bottleneck (only ~300-400 req/s)
-- **Bun still outperforms Nginx** on on-the-fly gzip by ~60%
-- **Memory caching on Bun** reduces performance compared to direct file serving (Bun.file optimizations are more effective)
+- **Bun outperforms Nginx by ~10%** (72.4k vs 65.9k req/s) for pre-compressed gzip files, achieving 8.08 GB/s throughput
+- **Bun.file optimizations are more effective than explicit memory caching** - direct file serving is 31% faster than in-memory caching (72.4k vs 55.4k req/s)
+- **Ruby, Node.js, and Python show similar performance** (15-19k req/s), with **Ruby/Puma being the fastest** of the three interpreted languages at 18.9k req/s
+- **Never use on-the-fly gzip compression in production** - it's 193-319x slower than pre-compressed files (227-375 req/s vs 66-72k req/s), creating a severe CPU bottleneck
 
 ## License
 
