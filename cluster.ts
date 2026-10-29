@@ -6,7 +6,7 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 if (cluster.isPrimary) {
-  const numWorkers = 2;
+  const numWorkers = Number.parseInt(process.env.WORKERS || "2", 10);
 
   const MODE = process.env.MODE || "precompressed-gzip";
 

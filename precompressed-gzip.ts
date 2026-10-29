@@ -3,6 +3,7 @@ import { getMetadata } from "./helpers";
 
 // Bun server with pre-compressed gzip files (gzip_static equivalent)
 const server = serve({
+  port: 9000,
   reusePort: true,
 
   routes: {

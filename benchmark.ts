@@ -2,31 +2,79 @@ interface BenchmarkResult {
   name: string;
   reqsPerSec: number;
   latencyAvg: number;
-  latencyMax: number;
   throughput: string;
 }
 
-const DURATION = "10s";
+const DURATION = "20s";
 const CONNECTIONS = "50";
 const WORKERS = "2";
 const GOMAXPROCS = "6";
-const PORT = "3000";
+const PORT = "9000";
+// CPUs the tested server is pinned to, bombardier uses the others
+const SERVER_CPUS = "0,1";
 
 const results: BenchmarkResult[] = [];
 
-async function _runCommand(cmd: string): Promise<string> {
-  const proc = Bun.spawn(cmd.split(" "), {
-    stdout: "pipe",
-    stderr: "pipe",
-  });
+const MILLISECONDS_PER_UNIT: Record<string, number> = { us: 0.001, ms: 1, s: 1000, m: 60000 };
 
-  const output = await new Response(proc.stdout).text();
-  await proc.exited;
-  return output;
+function convertDurationToMs(durationText: string): number {
+  const match = durationText.match(/^([\d.]+)(us|ms|s|m)$/);
+  return match?.[1] && match[2] ? parseFloat(match[1]) * (MILLISECONDS_PER_UNIT[match[2]] ?? 0) : 0;
 }
 
 async function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+const SERVER_READY_TIMEOUT_MS = 30_000;
+
+async function isServerResponding(url: string): Promise<boolean> {
+  try {
+    const response = await fetch(url, { headers: { "Accept-Encoding": "gzip" } });
+    await response.arrayBuffer();
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+// A fixed delay is either too short (the first requests are refused and counted
+// as throughput) or wastes time, so poll until the server serves the file
+async function waitForServerReady(url: string, serverProcess?: Bun.Subprocess): Promise<void> {
+  const deadline = Date.now() + SERVER_READY_TIMEOUT_MS;
+  while (Date.now() < deadline) {
+    if (serverProcess?.exitCode != null) {
+      throw new Error(`Server exited with code ${serverProcess.exitCode} before being ready`);
+    }
+    if (await isServerResponding(url)) return;
+    await sleep(100);
+  }
+  throw new Error(`Server did not serve ${url} within ${SERVER_READY_TIMEOUT_MS / 1000}s`);
+}
+
+// Bombardier counts refused connections and error statuses in Reqs/sec,
+// so any of them makes the result meaningless
+function countFailedRequests(bombardierOutput: string): number {
+  return [...bombardierOutput.matchAll(/\b(1xx|3xx|4xx|5xx|others) - (\d+)/g)]
+    .map((match) => Number(match[2]))
+    .reduce((total, count) => total + count, 0);
+}
+
+function parseBenchmarkResult(name: string, bombardierOutput: string): BenchmarkResult {
+  const reqsMatch = bombardierOutput.match(/Reqs\/sec\s+(\d+\.\d+)/);
+  // Bombardier prints the average latency with its own unit (us, ms, s)
+  const latencyMatch = bombardierOutput.match(/Latency\s+(\S+)/);
+  const throughputMatch = bombardierOutput.match(/Throughput:\s+([\d.]+\w+\/s)/);
+
+  if (!reqsMatch?.[1]) {
+    throw new Error(`Could not parse bombardier output for ${name}`);
+  }
+  return {
+    name,
+    reqsPerSec: parseFloat(reqsMatch[1]),
+    latencyAvg: latencyMatch?.[1] ? convertDurationToMs(latencyMatch[1]) : 0,
+    throughput: throughputMatch?.[1] ?? "N/A",
+  };
 }
 
 async function runBenchmark(
@@ -40,33 +88,31 @@ async function runBenchmark(
 
   let proc: Bun.Subprocess | undefined;
 
-  // Start server
-  if (isDocker) {
-    // Clean up any existing container first
-    await Bun.$`docker stop perf-test 2>/dev/null || true`.quiet();
-    await Bun.$`docker rm perf-test 2>/dev/null || true`.quiet();
-    await sleep(500);
-
-    await Bun.$`${command.split(" ")}`.quiet();
-    await sleep(3000);
-  } else {
-    // Use taskset to pin to CPUs 0,1
-    const tasksetCmd = ["taskset", "-c", "0,1", ...command.split(" ")];
-    proc = Bun.spawn(tasksetCmd, {
-      env: {
-        ...process.env,
-        NODE_ENV: "production",
-        WEB_CONCURRENCY: WORKERS,
-        ...extraEnv,
-      },
-      stdout: "pipe",
-      stderr: "pipe",
-    });
-    await sleep(1000);
-  }
-
-  // Run bombardier with Accept-Encoding header
   try {
+    // Start server
+    if (isDocker) {
+      // Clean up any existing container first
+      await Bun.$`docker stop perf-test 2>/dev/null || true`.quiet();
+      await Bun.$`docker rm perf-test 2>/dev/null || true`.quiet();
+
+      await Bun.$`${command.split(" ")}`.quiet();
+      await waitForServerReady(benchmarkUrl);
+    } else {
+      const tasksetCmd = ["taskset", "-c", SERVER_CPUS, ...command.split(" ")];
+      proc = Bun.spawn(tasksetCmd, {
+        env: {
+          ...process.env,
+          NODE_ENV: "production",
+          WORKERS,
+          ...extraEnv,
+        },
+        stdout: "pipe",
+        stderr: "pipe",
+      });
+      await waitForServerReady(benchmarkUrl, proc);
+    }
+
+    // Run bombardier with Accept-Encoding header
     const output =
       await Bun.$`bombardier -c ${CONNECTIONS} -d ${DURATION} -H "Accept-Encoding: gzip" ${benchmarkUrl}`
         .env({ GOMAXPROCS })
@@ -74,31 +120,21 @@ async function runBenchmark(
 
     console.log(output);
 
-    // Parse results
-    const reqsMatch = output.match(/Reqs\/sec\s+(\d+\.\d+)/);
-    const latencyAvgMatch = output.match(/Latency.*?(\d+\.\d+)ms/);
-    const latencyMaxMatch = output.match(/Max:\s+(\d+\.\d+)ms/);
-    const throughputMatch = output.match(/Throughput:\s+([\d.]+\w+\/s)/);
-
-    if (reqsMatch?.[1]) {
-      results.push({
-        name,
-        reqsPerSec: parseFloat(reqsMatch[1]),
-        latencyAvg: latencyAvgMatch?.[1] ? parseFloat(latencyAvgMatch[1]) : 0,
-        latencyMax: latencyMaxMatch?.[1] ? parseFloat(latencyMaxMatch[1]) : 0,
-        throughput: throughputMatch?.[1] ?? "N/A",
-      });
+    const failedRequestCount = countFailedRequests(output);
+    if (failedRequestCount > 0) {
+      throw new Error(`${name}: ${failedRequestCount} requests failed`);
     }
-  } catch (error) {
-    console.error(`❌ Benchmark failed: ${error}`);
-  }
 
-  // Stop server
-  if (isDocker) {
-    await Bun.$`docker stop perf-test`.quiet();
-    await Bun.$`docker rm perf-test`.quiet();
-  } else if (proc) {
-    proc.kill();
+    results.push(parseBenchmarkResult(name, output));
+  } finally {
+    // Stop server, even when the benchmark failed, so the port is free again
+    if (isDocker) {
+      await Bun.$`docker stop perf-test 2>/dev/null || true`.quiet();
+      await Bun.$`docker rm perf-test 2>/dev/null || true`.quiet();
+    } else if (proc) {
+      proc.kill();
+      await proc.exited;
+    }
   }
 
   await sleep(2000);
@@ -170,7 +206,6 @@ async function main() {
     "node precompressed-gzip.node.js",
     false,
     BENCHMARK_URL,
-    { WORKERS },
   );
 
   // Python Benchmarks
@@ -181,38 +216,31 @@ async function main() {
     "python3 precompressed-gzip.py",
     false,
     BENCHMARK_URL,
-    { WORKERS },
   );
 
   // Ruby Benchmarks
   console.log("\n=== RUBY SERVERS ===");
 
-  await runBenchmark(
-    "Ruby precompressed gzip",
-    "ruby precompressed-gzip.rb",
-    false,
-    BENCHMARK_URL,
-    { WORKERS },
-  );
+  await runBenchmark("Ruby precompressed gzip", "ruby precompressed-gzip.rb", false, BENCHMARK_URL);
 
   // Nginx Benchmarks
   console.log("\n=== NGINX SERVERS ===");
 
   console.log("\n🐳 Building Nginx Docker images...");
-  await Bun.$`docker build -f Dockerfile.nginx-precompressed-gzip -t nginx-precompressed-gzip .`.quiet();
-  await Bun.$`docker build -f Dockerfile.nginx-on-the-fly-gzip -t nginx-on-the-fly-gzip .`.quiet();
+  await Bun.$`docker build --build-arg WORKERS=${WORKERS} -f Dockerfile.nginx-precompressed-gzip -t nginx-precompressed-gzip .`.quiet();
+  await Bun.$`docker build --build-arg WORKERS=${WORKERS} -f Dockerfile.nginx-on-the-fly-gzip -t nginx-on-the-fly-gzip .`.quiet();
 
   const distPath = `${process.cwd()}/dist`;
 
   await runBenchmark(
     "Nginx precompressed gzip",
-    `docker run -d --name perf-test --cpuset-cpus=0,1 -v ${distPath}:/var/www/html:ro -p ${PORT}:${PORT} nginx-precompressed-gzip`,
+    `docker run -d --name perf-test --cpuset-cpus=${SERVER_CPUS} -v ${distPath}:/var/www/html:ro --network host nginx-precompressed-gzip`,
     true,
     BENCHMARK_URL,
   );
   await runBenchmark(
     "Nginx on-the-fly gzip",
-    `docker run -d --name perf-test --cpuset-cpus=0,1 -v ${distPath}:/var/www/html:ro -p ${PORT}:${PORT} nginx-on-the-fly-gzip`,
+    `docker run -d --name perf-test --cpuset-cpus=${SERVER_CPUS} -v ${distPath}:/var/www/html:ro --network host nginx-on-the-fly-gzip`,
     true,
     BENCHMARK_URL,
   );
@@ -244,4 +272,7 @@ async function main() {
   console.log("📝 Results saved to: benchmark-results.json");
 }
 
-main().catch(console.error);
+main().catch((error) => {
+  console.error(`❌ Benchmark stopped: ${error instanceof Error ? error.message : error}`);
+  process.exit(1);
+});

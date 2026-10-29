@@ -1,9 +1,9 @@
-import { gzipSync } from "node:zlib";
 import { serve } from "bun";
 import { getMetadata } from "./helpers";
 
 // Bun server with on-the-fly gzip compression
 const server = serve({
+  port: 9000,
   reusePort: true,
 
   routes: {
@@ -16,8 +16,9 @@ const server = serve({
 
       // Compress on-the-fly if client accepts gzip
       if (acceptEncoding.includes("gzip")) {
-        const content = await file.arrayBuffer();
-        const compressed = gzipSync(new Uint8Array(content));
+        const content = await file.bytes();
+        // Level 6 matches nginx's gzip_comp_level, libdeflate is faster than zlib at the same level
+        const compressed = Bun.gzipSync(content, { library: "libdeflate", level: 6 });
 
         return new Response(compressed, {
           headers: {

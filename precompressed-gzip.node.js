@@ -100,9 +100,9 @@ function startServer() {
     createReadStream(filePath).pipe(res);
   });
 
-  server.listen(3000, () => {
+  server.listen(9000, () => {
     console.log(
-      `🚀 Node.js precompressed gzip Server running at http://localhost:3000 (PID: ${process.pid})`,
+      `🚀 Node.js precompressed gzip Server running at http://localhost:9000 (PID: ${process.pid})`,
     );
   });
 }
