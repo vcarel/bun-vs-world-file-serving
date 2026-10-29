@@ -12,6 +12,7 @@ const fileCache = new Map<
 
 // Bun server with true in-memory caching + pre-compressed gzip files
 const server = serve({
+  port: 9000,
   reusePort: true,
 
   routes: {

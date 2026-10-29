@@ -23,34 +23,16 @@ If you have different hardware, adjust the configuration in `benchmark.ts`:
 
 ```typescript
 // Adjust these constants based on your system:
-const CONNECTIONS = "50";  // Parallel requests
-const GOMAXPROCS = "6";     // Bombardier CPU cores (6-8 recommended)
-const WORKERS = "2";        // Server worker processes
-
-// And update taskset CPU pinning:
-const tasksetCmd = ["taskset", "-c", "0-1", ...command.split(" ")]; // Adjust core range
+const CONNECTIONS = "50"; // Parallel requests
+const GOMAXPROCS = "6"; // Bombardier CPU cores (6-8 recommended)
+const WORKERS = "2"; // Server worker processes
+const SERVER_CPUS = "0,1"; // CPUs the tested server is pinned to
 ```
 
 ## Prerequisites
 
-- [Bun](https://bun.sh) (v1.3.2+)
-- [Node.js](https://nodejs.org/) (v22.12.0+)
-- [Python](https://www.python.org/) (v3.13+)
-- [Ruby](https://www.ruby-lang.org/) (v3.3+)
-- [Docker](https://www.docker.com/) (for Nginx containers)
-- [Bombardier](https://github.com/codesenberg/bombardier) HTTP benchmarking tool
-
-### Using mise (recommended)
-
-Install runtime versions using [mise](https://mise.jdx.dev/):
-
-```bash
-mise install
-```
-
-This will install Node.js, Python, and Ruby versions from [.tool-versions](.tool-versions).
-
-Note: mise is compatible with asdf's `.tool-versions` format, so `asdf install` also works.
+- [mise](https://mise.jdx.dev/): run `mise install` to get Bun, Node.js, Python, Ruby and Bombardier at the versions pinned in [.tool-versions](.tool-versions)
+- [Docker](https://www.docker.com/) (for Nginx containers, version pinned in the Dockerfiles)
 
 ## Installation
 
@@ -74,6 +56,8 @@ Run all benchmarks (Bun, Node.js, Python, Ruby, and Nginx configurations):
 ```bash
 bun benchmark.ts
 ```
+
+The Docker daemon must be running. All servers listen on port 9000, which must be free.
 
 This will:
 1. Build Docker images for Nginx configurations
@@ -106,6 +90,8 @@ bun run start:ruby
 
 ## Benchmark results
 
+Run on October 29, 2026, on an AMD Ryzen AI 7 350 (16 threads, 30 GB RAM), Linux 7.2 (btrfs), with Bun 1.4.4, Node.js 26.12.1, Python 3.15.2 (Gunicorn 26.2 + gevent 26.9), Ruby 4.0.9 (Puma 8.0) and Nginx 1.31.8.
+
 ```
 ========================================
   BENCHMARK RESULTS SUMMARY
@@ -113,22 +99,22 @@ bun run start:ruby
 
 Rank | Server                              | Reqs/sec    | Avg Latency | Throughput
 -----+-------------------------------------+-------------+-------------+-----------
-   1 | Bun precompressed gzip              |    72433.09 |     16.45ms | 8.08GB/s
-   2 | Nginx precompressed gzip            |    65906.14 |     28.74ms | 7.36GB/s
-   3 | Bun precompressed gzip memory cache |    55431.30 |      0.90ms | 6.18GB/s
-   4 | Ruby precompressed gzip             |    18859.19 |      2.75ms | 1.94GB/s
-   5 | Node.js precompressed gzip          |    15512.30 |      3.22ms | 1.73GB/s
-   6 | Python precompressed gzip           |    15329.50 |      3.26ms | 1.71GB/s
-   7 | Bun on-the-fly gzip                 |      374.99 |    132.46ms | 42.83MB/s
-   8 | Nginx on-the-fly gzip               |      227.14 |    217.75ms | 25.82MB/s
+   1 | Nginx precompressed gzip            |    96615.93 |      0.52ms | 11.89GB/s
+   2 | Bun precompressed gzip memory cache |    76113.43 |      0.66ms | 9.35GB/s
+   3 | Bun precompressed gzip              |    17332.89 |      2.88ms | 2.13GB/s
+   4 | Ruby precompressed gzip             |    13528.08 |      3.69ms | 1.66GB/s
+   5 | Node.js precompressed gzip          |    11548.62 |      4.33ms | 1.42GB/s
+   6 | Python precompressed gzip           |    10447.58 |      4.78ms | 1.28GB/s
+   7 | Bun on-the-fly gzip                 |      370.02 |    134.65ms | 46.00MB/s
+   8 | Nginx on-the-fly gzip               |      151.92 |    326.84ms | 18.87MB/s
 ```
 
 ## Key findings
 
-- **Bun outperforms Nginx by ~10%** (72.4k vs 65.9k req/s) for pre-compressed gzip files, achieving 8.08 GB/s throughput
-- **Bun.file optimizations are more effective than explicit memory caching** - direct file serving is 31% faster than in-memory caching (72.4k vs 55.4k req/s)
-- **Ruby, Node.js, and Python show similar performance** (15-19k req/s), with **Ruby/Puma being the fastest** of the three interpreted languages at 18.9k req/s
-- **Never use on-the-fly gzip compression in production** - it's 193-319x slower than pre-compressed files (227-375 req/s vs 66-72k req/s), creating a severe CPU bottleneck
+- **Nginx is the fastest for pre-compressed gzip files** (96.6k req/s, 11.9 GB/s), followed by **Bun's memory cache** (76.1k req/s, ~21% slower)
+- **Bun reading files from disk is about 4x slower than Bun serving from memory** on this machine (17.3k vs 76.1k req/s). This is a regression in Bun 1.3.13: since that version, Bun only uses `sendfile` for files of 1 MiB or more. Our 131 KB file is now read into memory and copied back to the socket on every request, which halves throughput (about 39k req/s with Bun 1.3.12, 16-24k with 1.3.13 and later)
+- **Ruby/Puma is the fastest of Ruby, Node.js, and Python** (13.5k req/s), ahead of Node.js (11.5k) and Python (10.4k)
+- **Never use on-the-fly gzip compression in production** - it's 47-636x slower than pre-compressed files (152-370 req/s vs 17-97k req/s), creating a severe CPU bottleneck
 
 ## License
 

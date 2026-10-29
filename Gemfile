@@ -1,4 +1,4 @@
 source 'https://rubygems.org'
 
-gem 'puma', '~> 6.4'
-gem 'rack', '~> 3.1'
+gem 'puma', '~> 8.0'
+gem 'rack', '~> 3.2'
